@@ -563,3 +563,6 @@ FodyWeavers.xsd
 
 # My config
 my_config.json
+
+# Build
+./build
