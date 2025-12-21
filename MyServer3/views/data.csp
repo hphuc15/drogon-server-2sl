@@ -1,489 +1,680 @@
 <!DOCTYPE html>
-<html>
-<%c++ auto data=@@.get<std::vector<std::map<std::string, std::string>>>("data");
-    %>
+<html lang="en">
+<%c++ auto data=@@.get<std::vector<std::map<std::string, std::string>>>("data");%>
 
     <head>
         <meta charset="UTF-8">
-        <title>
-            Sensor Data
-        </title>
-        <h1>Sensor Data</h1>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sensor Data Dashboard</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: #f5f9ff;
+                color: #333;
+                line-height: 1.6;
+                padding: 20px;
+            }
+
+            .container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 2px solid #e0edff;
+            }
+
+            h1 {
+                color: #2c5282;
+                font-size: 28px;
+                font-weight: 600;
+            }
+
+            .subtitle {
+                color: #718096;
+                margin-top: 5px;
+                font-size: 14px;
+            }
+
+            .filter-section {
+                background: white;
+                padding: 25px;
+                margin-bottom: 30px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                border: 1px solid #e2e8f0;
+            }
+
+            .filter-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-bottom: 20px;
+            }
+
+            .filter-group {
+                display: flex;
+                flex-direction: column;
+            }
+
+            label {
+                font-weight: 500;
+                color: #4a5568;
+                margin-bottom: 6px;
+                font-size: 14px;
+            }
+
+            input,
+            select {
+                padding: 10px 12px;
+                border: 1px solid #cbd5e0;
+                border-radius: 4px;
+                font-size: 14px;
+                transition: border-color 0.2s;
+            }
+
+            input:focus,
+            select:focus {
+                outline: none;
+                border-color: #4299e1;
+                box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+            }
+
+            .multiselect-container {
+                position: relative;
+            }
+
+            .multiselect-header {
+                padding: 10px 12px;
+                border: 1px solid #cbd5e0;
+                border-radius: 4px;
+                background: white;
+                cursor: pointer;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 14px;
+            }
+
+            .multiselect-header::after {
+                content: "▼";
+                font-size: 10px;
+                color: #718096;
+            }
+
+            .multiselect-options {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #cbd5e0;
+                border-top: none;
+                border-radius: 0 0 4px 4px;
+                z-index: 10;
+                display: none;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            }
+
+            .multiselect-options.active {
+                display: block;
+            }
+
+            .multiselect-option {
+                padding: 10px 12px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+
+            .multiselect-option:hover {
+                background-color: #f7fafc;
+            }
+
+            .multiselect-option input[type="checkbox"] {
+                margin: 0;
+            }
+
+            .button-group {
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+                padding-top: 20px;
+                border-top: 1px solid #e2e8f0;
+            }
+
+            .btn {
+                padding: 10px 24px;
+                border: none;
+                border-radius: 4px;
+                font-weight: 500;
+                font-size: 14px;
+                cursor: pointer;
+                transition: all 0.2s;
+            }
+
+            .btn-primary {
+                background-color: #4299e1;
+                color: white;
+            }
+
+            .btn-primary:hover {
+                background-color: #3182ce;
+            }
+
+            .btn-export {
+                background-color: #2eb576;
+                color: white;
+            }
+
+            .btn-export:hover {
+                background-color: #38a169;
+            }
+
+            .btn-secondary {
+                background-color: #e2e8f0;
+                color: #4a5568;
+            }
+
+            .btn-secondary:hover {
+                background-color: #cbd5e0;
+            }
+
+            .table-container {
+                background: white;
+                overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                border: 1px solid #e2e8f0;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            thead {
+                background-color: #edf2f7;
+            }
+
+            th {
+                padding: 15px;
+                text-align: left;
+                font-weight: 600;
+                color: #4a5568;
+                font-size: 14px;
+                border-bottom: 2px solid #e2e8f0;
+            }
+
+            td {
+                padding: 15px;
+                border-bottom: 1px solid #e2e8f0;
+                font-size: 14px;
+            }
+
+            tbody tr:hover {
+                background-color: #f7fafc;
+            }
+
+            .status-low {
+                color: #38a169;
+                font-weight: 500;
+            }
+
+            .status-medium {
+                color: #d69e2e;
+                font-weight: 500;
+            }
+
+            .status-high {
+                color: #e53e3e;
+                font-weight: 500;
+            }
+
+            .no-data {
+                text-align: center;
+                padding: 40px;
+                color: #718096;
+                font-style: italic;
+            }
+
+            @media (max-width: 768px) {
+                .filter-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .button-group {
+                    flex-direction: column;
+                }
+
+                .btn {
+                    width: 100%;
+                }
+
+                table {
+                    display: block;
+                    overflow-x: auto;
+                }
+            }
+        </style>
     </head>
 
     <body>
+        <div class="container">
+            <header>
+                <h1>Sensor Data Dashboard</h1>
+                <div class="subtitle">Monitor and filter sensor light readings in real-time</div>
+            </header>
 
-        <div class="filter-container">
-            <div class="filter-row">
-                <!-- Test filter-->
-                <form action="/api/data/getData" method="get" target="_self">
-                    <div class="field">
-                        <label for="sensor_id">Sensor ID</label><br>
-                        <input type="number" id="sensor_id" name="sensor_id"><br>
-                    </div>
+            <section class="filter-section">
+                <form id="filterForm" method="get" action="/api/data/getData">
+                    <div class="filter-grid">
+                        <div class="filter-group">
+                            <label for="sensor_id">Sensor ID</label>
+                            <input type="number" id="sensor_id" name="sensor_id" min="1" placeholder="Enter sensor ID">
+                        </div>
 
-                    <div class="field">
-                        <label for="date">Date</label><br>
-                        <input type="date" id="date" name="date"><br>
-                    </div>
+                        <div class="filter-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" name="date">
+                        </div>
 
-                    <div class="field">
-                        <label for="level">Select Light Level</label><br>
-                        <select id="level" name="level">
-                            <option value="">All</option>
-                            <option value="low">Low (0 - 1000)</option>
-                            <option value="medium">Medium (1000 - 10000)</option>
-                            <option value="high">High (> 10000)</option>
-                        </select><br>
-                    </div>
+                        <div class="filter-group">
+                            <label for="level">Light Level</label>
+                            <select id="level" name="level">
+                                <option value="">All Levels</option>
+                                <option value="low">Low (0 - 1000 lx)</option>
+                                <option value="medium">Medium (1000 - 10000 lx)</option>
+                                <option value="high">High (> 10000 lx)</option>
+                            </select>
+                        </div>
 
-                    <div class="field">
-                        <label for="sort">Sort by</label><br>
-
-                        <select id="sort-display" multiple style="display: none;">
-                            <option value="date">Date</option>
-                            <option value="time">Time</option>
-                            <option value="light">Value</option>
-                        </select>
-
-                        <div class="custom-multiselect">
-                            <div class="selected-items" id="selected-sort-items">Select sort options</div>
-                            <div class="dropdown-options" id="sort-options">
-                                <label class="option-item">
-                                    Date<input type="checkbox" value="date">
-                                </label>
-                                <label class="option-item">
-                                    Time <input type="checkbox" value="time">
-                                </label>
-                                <label class="option-item">
-                                    Value<input type="checkbox" value="light">
-                                </label>
+                        <div class="filter-group">
+                            <label>Sort By</label>
+                            <div class="multiselect-container">
+                                <div class="multiselect-header" id="sortHeader">Select options</div>
+                                <div class="multiselect-options" id="sortOptions">
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" value="date">
+                                        Date
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" value="time">
+                                        Time
+                                    </label>
+                                    <label class="multiselect-option">
+                                        <input type="checkbox" value="light">
+                                        Light Value
+                                    </label>
+                                </div>
+                                <!-- Hidden input for form submission -->
+                                <select id="sortInput" name="sort" multiple style="display: none;">
+                                    <option value="date">Date</option>
+                                    <option value="time">Time</option>
+                                    <option value="light">Light Value</option>
+                                </select>
                             </div>
                         </div>
-                        <br><br>
                     </div>
-                    <div class="filter-actions">
-                        <button type="submit" id="apply-button">Apply</button>
-                        <button type="button" id="reset-button">Reset</button>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn btn-primary">Apply Filters</button>
+                        <button type="button" class="btn btn-export" id="exportCsvBtn">Export CSV</button>
+                        <button type="button" class="btn btn-secondary" id="resetBtn">Reset Filters</button>
                     </div>
                 </form>
-            </div>
+            </section>
+
+            <section class="table-container">
+                <table id="sensorTable">
+                    <thead>
+                        <tr>
+                            <th>Sensor ID</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Light Level (lx)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <%c++ for(auto row:data){ %>
+                            <tr>
+                                <td>{% row["sensor_id"] %}</td>
+                                <td>{% row["date"] %}</td>
+                                <td>{% row["time"] %}</td>
+                                <td>{% row["light"] %}</td>
+                            </tr>
+                            <%c++ } %>
+
+                    </tbody>
+                </table>
+            </section>
         </div>
-        <br>
-        <table id="sensor-table">
-            <tr>
-                <th>Sensor ID</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Light (lx)</th>
-            </tr>
-            <%c++ for(auto row : data){ %>
-                <tr>
-                    <td>{% row["sensor_id"] %}</td>
-                    <td>{% row["date"] %}</td>
-                    <td>{% row["time"] %}</td>
-                    <td>{% row["light"] %}</td>
-                </tr>
-                <%c++ } %>
-        </table>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                // Multiselect functionality
+                const sortHeader = document.getElementById('sortHeader');
+                const sortOptions = document.getElementById('sortOptions');
+                const sortCheckboxes = sortOptions.querySelectorAll('input[type="checkbox"]');
+                const sortInput = document.getElementById('sortInput');
+                const resetBtn = document.getElementById('resetBtn');
+                const exportCsvBtn = document.getElementById('exportCsvBtn');
+                const filterForm = document.getElementById('filterForm');
+                const tableBody = document.getElementById('tableBody');
+
+                // Toggle multiselect dropdown
+                sortHeader.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    sortOptions.classList.toggle('active');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function () {
+                    sortOptions.classList.remove('active');
+                });
+
+                // Prevent dropdown close when clicking inside
+                sortOptions.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                });
+
+                // Handle checkbox changes
+                sortCheckboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', function () {
+                        updateSortDisplay();
+                        updateSortInput();
+                        sortTable();
+                    });
+                });
+
+                // Reset button functionality
+                resetBtn.addEventListener('click', function () {
+                    // Reset form inputs
+                    filterForm.reset();
+
+                    // Reset sort checkboxes
+                    sortCheckboxes.forEach(cb => cb.checked = false);
+
+                    // Reset sort display
+                    sortHeader.textContent = 'Select options';
+
+                    // Reset sort input
+                    Array.from(sortInput.options).forEach(option => option.selected = false);
+
+                    // Reset table sorting
+                    resetTable();
+
+                    // Optional: Clear URL parameters without reloading
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                });
+
+                // Export CSV file function
+                exportCsvBtn.addEventListener('click', function () {
+                    updateSortInput();
+
+                    const formData = new FormData(filterForm);
+                    const params = new URLSearchParams();
+
+                    for (let [key, value] of formData.entries()) {
+                        if (value) {
+                            if (key === 'sort') {
+                                // sort là multiple
+                                const existing = params.get('sort');
+                                params.set('sort', existing ? `${existing},${value}` : value);
+                            } else {
+                                params.append(key, value);
+                            }
+                        }
+                    }
+
+                    window.location.href = "/api/data/exportCsv?" + params.toString();
+                });
+
+                // Form submission handler (for demo purposes)
+                filterForm.addEventListener('submit', function (e) {
+                    // Update hidden sort input before submission
+                    updateSortInput();
+
+                    // Get form data
+                    const formData = new FormData(filterForm);
+                    const params = new URLSearchParams();
+
+                    // Build query string
+                    for (let [key, value] of formData.entries()) {
+                        if (value) {
+                            if (key === 'sort') {
+                                // Handle multiple sort values
+                                const existing = params.get('sort');
+                                params.set('sort', existing ? `${existing},${value}` : value);
+                            } else {
+                                params.append(key, value);
+                            }
+                        }
+                    }
+
+                    // For demo: show what would be submitted
+                    console.log('Submitting with params:', params.toString());
+
+                    // In real implementation, you would:
+                    // 1. Make an AJAX request to /api/data/getData
+                    // 2. Update table with response data
+
+                    // Demo: simulate API call with timeout
+                    simulateApiCall(params);
+
+                    // To actually submit the form, uncomment:
+                    this.submit();
+                });
+
+                // Helper functions
+                function updateSortDisplay() {
+                    const selected = Array.from(sortCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.parentElement.textContent.trim());
+
+                    sortHeader.textContent = selected.length > 0 ? selected.join(', ') : 'Select options';
+                }
+
+                function updateSortInput() {
+                    // Clear all selections
+                    Array.from(sortInput.options).forEach(option => {
+                        option.selected = false;
+                    });
+
+                    // Set selected options
+                    sortCheckboxes.forEach(checkbox => {
+                        if (checkbox.checked) {
+                            const option = Array.from(sortInput.options).find(opt => opt.value === checkbox.value);
+                            if (option) option.selected = true;
+                        }
+                    });
+                }
+
+                function sortTable() {
+                    const selectedSorts = Array.from(sortCheckboxes)
+                        .filter(cb => cb.checked)
+                        .map(cb => cb.value);
+
+                    if (selectedSorts.length === 0) {
+                        resetTable();
+                        return;
+                    }
+
+                    const rows = Array.from(tableBody.querySelectorAll('tr'));
+
+                    rows.sort((a, b) => {
+                        const aCells = a.querySelectorAll('td');
+                        const bCells = b.querySelectorAll('td');
+
+                        for (let sortBy of selectedSorts) {
+                            let comparison = 0;
+
+                            switch (sortBy) {
+                                case 'date':
+                                    comparison = new Date(aCells[1].textContent) - new Date(bCells[1].textContent);
+                                    break;
+                                case 'time':
+                                    comparison = aCells[2].textContent.localeCompare(bCells[2].textContent);
+                                    break;
+                                case 'light':
+                                    const aValue = parseFloat(aCells[3].textContent.replace(',', ''));
+                                    const bValue = parseFloat(bCells[3].textContent.replace(',', ''));
+                                    comparison = aValue - bValue;
+                                    break;
+                            }
+
+                            if (comparison !== 0) return comparison;
+                        }
+
+                        return 0;
+                    });
+
+                    // Reorder rows
+                    tableBody.innerHTML = '';
+                    rows.forEach(row => tableBody.appendChild(row));
+                }
+
+                function resetTable() {
+                    // In a real app, you would reload original data from server
+                    // For demo, we'll just re-sort by sensor ID
+                    const rows = Array.from(tableBody.querySelectorAll('tr'));
+                    rows.sort((a, b) => {
+                        const aId = parseInt(a.querySelector('td').textContent);
+                        const bId = parseInt(b.querySelector('td').textContent);
+                        return aId - bId;
+                    });
+
+                    tableBody.innerHTML = '';
+                    rows.forEach(row => tableBody.appendChild(row));
+                }
+
+                // Demo function to simulate API call
+                function simulateApiCall(params) {
+                    // Show loading state
+                    const submitBtn = filterForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Loading...';
+                    submitBtn.disabled = true;
+
+                    // Simulate API delay
+                    setTimeout(() => {
+                        // Update table with filtered data (demo)
+                        const filteredRows = filterTableData(params);
+                        updateTable(filteredRows);
+
+                        // Restore button state
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+
+                        // Show notification
+                        showNotification(`Applied filters: ${getFilterSummary(params)}`);
+                    }, 800);
+                }
+
+                // Demo data filtering (in real app, this would be server-side)
+                function filterTableData(params) {
+                    const allRows = Array.from(tableBody.querySelectorAll('tr'));
+                    const sensorId = params.get('sensor_id');
+                    const date = params.get('date');
+                    const level = params.get('level');
+
+                    return allRows.filter(row => {
+                        const cells = row.querySelectorAll('td');
+                        const rowSensorId = cells[0].textContent;
+                        const rowDate = cells[1].textContent;
+                        const rowLight = parseFloat(cells[3].textContent.replace(',', ''));
+
+                        // Filter by sensor ID
+                        if (sensorId && rowSensorId !== sensorId) return false;
+
+                        // Filter by date
+                        if (date && rowDate !== date) return false;
+
+                        // Filter by level
+                        if (level) {
+                            if (level === 'low' && rowLight >= 1000) return false;
+                            if (level === 'medium' && (rowLight < 1000 || rowLight > 10000)) return false;
+                            if (level === 'high' && rowLight <= 10000) return false;
+                        }
+
+                        return true;
+                    });
+                }
+
+                function updateTable(rows) {
+                    tableBody.innerHTML = '';
+                    if (rows.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4" class="no-data">No data matching the selected filters</td></tr>';
+                    } else {
+                        rows.forEach(row => tableBody.appendChild(row.cloneNode(true)));
+                    }
+                }
+
+                function getFilterSummary(params) {
+                    const filters = [];
+                    if (params.get('sensor_id')) filters.push(`Sensor ID: ${params.get('sensor_id')}`);
+                    if (params.get('date')) filters.push(`Date: ${params.get('date')}`);
+                    if (params.get('level')) filters.push(`Level: ${params.get('level')}`);
+                    if (params.get('sort')) filters.push(`Sort: ${params.get('sort')}`);
+                    return filters.length > 0 ? filters.join(', ') : 'All data';
+                }
+
+                function showNotification(message) {
+                    // Create notification element
+                    const notification = document.createElement('div');
+                    notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #4299e1;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 1000;
+                    animation: slideIn 0.3s ease;
+                `;
+                    notification.textContent = message;
+
+                    document.body.appendChild(notification);
+
+                    // Remove after 3 seconds
+                    setTimeout(() => {
+                        notification.style.animation = 'slideOut 0.3s ease';
+                        setTimeout(() => notification.remove(), 300);
+                    }, 3000);
+
+                    // Add CSS animation
+                    if (!document.querySelector('#notification-styles')) {
+                        const style = document.createElement('style');
+                        style.id = 'notification-styles';
+                        style.textContent = `
+                        @keyframes slideIn {
+                            from { transform: translateX(100%); opacity: 0; }
+                            to { transform: translateX(0); opacity: 1; }
+                        }
+                        @keyframes slideOut {
+                            from { transform: translateX(0); opacity: 1; }
+                            to { transform: translateX(100%); opacity: 0; }
+                        }
+                    `;
+                        document.head.appendChild(style);
+                    }
+                }
+
+                // Initialize
+                updateSortDisplay();
+            });
+        </script>
     </body>
 
 </html>
-
-
-
-
-
-<style>
-    body {
-        font-family: 'Consolas', Tahoma, Geneva, Verdana, sans-serif;
-        margin: 20px;
-    }
-
-    table {
-        border-collapse: collapse;
-        width: 100%;
-        margin: auto;
-    }
-
-    th,
-    td {
-        border: 1px solid #ccc;
-        padding: 8px 12px;
-        text-align: center;
-    }
-
-    th {
-        background-color: #f2f2f2;
-    }
-
-    h1 {
-        text-align: center;
-    }
-
-    /* Data Filter*/
-    .filter-container {
-        padding: 20px;
-        background-color: #f8f9fa;
-        border: 1px solid #ccc;
-        border-collapse: collapse;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .filter-row {
-        margin-bottom: 20px;
-        position: relative;
-    }
-
-    .filter-row form {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
-    }
-
-    .field {
-        position: relative;
-        width: 100%;
-    }
-
-    .field input,
-    .field select {
-        width: 100%;
-        padding: 10px 12px;
-        border: 2px solid #e1e8ed;
-        border-radius: 6px;
-        font-size: 14px;
-        transition: all 0.3s ease;
-        box-sizing: border-box;
-    }
-
-    .filter-row label {
-        font-weight: 600;
-        color: #2c3e50;
-        font-size: 14px;
-    }
-
-    .filter-row input[type="number"]:focus,
-    .filter-row input[type="date"]:focus,
-    .filter-row select:focus {
-        outline: none;
-        border-color: #3498db;
-    }
-
-    .filter-row input[type="submit"] {
-        padding: 12px 20px;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 16px;
-        font-weight: 60;
-        cursor: pointer;
-    }
-
-    .filter-row input[type="submit"]:hover {
-        background-color: #2980b9;
-    }
-
-    .filter-actions {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin-top: 10px;
-    }
-
-    .filter-actions button {
-        padding: 10px 20px;
-        border: none;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    #apply-button {
-        background-color: #27ae60;
-        color: white;
-    }
-
-    #apply-button:hover {
-        background-color: #219a52;
-    }
-
-    #reset-button {
-        background-color: #e74c3c;
-        color: white;
-    }
-
-    #resetbutton:hover {
-        background-color: #c0392b;
-    }
-
-    /* Responsive design */
-    @media (max-width: 480px) {
-        .filter-container {
-            margin: 10px;
-            padding: 15px;
-        }
-
-        .filter-actions {
-            flex-direction: column;
-        }
-
-        .filter-actions button {
-            width: 100%;
-        }
-    }
-
-    /* Style for select dropdown */
-    .filter-row select {
-        appearance: none;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        background-size: 16px;
-        padding-right: 40px;
-    }
-
-    /* Custom multiselect styles */
-    .custom-multiselect {
-        position: relative;
-        width: 100%;
-    }
-
-    .selected-items {
-        width: 100%;
-        padding: 10px 12px;
-        border: 2px solid #e1e8ed;
-        border-radius: 6px;
-        font-size: 14px;
-        background-color: white;
-        cursor: pointer;
-        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-        background-repeat: no-repeat;
-        background-position: right 12px center;
-        background-size: 16px;
-        padding-right: 40px;
-        box-sizing: border-box;
-    }
-
-    .dropdown-options {
-        display: none;
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: white;
-        border: 2px solid #e1e8ed;
-        border-top: none;
-        border-radius: 0 0 6px 6px;
-        z-index: 1000;
-        max-height: 200px;
-        overflow-y: auto;
-        box-sizing: border-box;
-        padding: 8px 0;
-        /* Thêm padding top/bottom */
-    }
-
-    .dropdown-options.show {
-        display: block;
-    }
-
-
-
-    .option-item {
-        display: grid;
-        grid-template-columns: 20px 1fr;
-        /* Cột checkbox 20px, còn lại cho text */
-        align-items: center;
-        gap: 12px;
-        /* Khoảng cách giữa checkbox và text */
-        padding: 8px 16px;
-        /* Điều chỉnh padding */
-        cursor: pointer;
-        border-bottom: 1px solid #f0f0f0;
-        margin: 0;
-    }
-
-    .option-item:hover {
-        background-color: #f8f9fa;
-    }
-
-    .option-item:last-child {
-        border-bottom: none;
-    }
-
-    .option-item input {
-        margin: 0;
-        width: 16px;
-        height: 16px;
-        justify-self: center;
-        /* Căn giữa trong grid cell */
-    }
-
-    /* Đảm bảo label chiếm toàn bộ chiều rộng còn lại */
-    .option-item {
-        width: 100%;
-    }
-</style>
-
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const sortSelect = document.getElementById('sort-display');
-        const selectedItemsDiv = document.getElementById('selected-sort-items');
-        const dropdownOptions = document.getElementById('sort-options');
-        const table = document.getElementById('sensor-table');
-        const checkboxes = dropdownOptions.querySelectorAll('input[type="checkbox"]');
-        const resetButton = document.getElementById('reset-button');
-        const form = document.querySelector('form');
-
-        // Toggle dropdown
-        selectedItemsDiv.addEventListener('click', function () {
-            dropdownOptions.classList.toggle('show');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('.custom-multiselect')) {
-                dropdownOptions.classList.remove('show');
-            }
-        });
-
-        // Handle checkbox changes
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function () {
-                updateSelectedDisplay();
-                updateHiddenSelect();
-                sortTable();
-            });
-        });
-
-        // Reset button handler
-        resetButton.addEventListener('click', function () {
-            // Reset all form inputs
-            form.reset();
-
-            // Uncheck all sort checkboxes
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-
-            // Reset sort display
-            selectedItemsDiv.textContent = 'Select sort options';
-
-            // Reset hidden select
-            Array.from(sortSelect.options).forEach(option => {
-                option.selected = false;
-            });
-
-            // Reset table to original order (reload or re-sort based on original data)
-            resetTable();
-        });
-
-        function updateSelectedDisplay() {
-            const selected = Array.from(checkboxes)
-                .filter(cb => cb.checked)
-                .map(cb => cb.parentElement.textContent.trim());
-
-            if (selected.length === 0) {
-                selectedItemsDiv.textContent = 'Select sort options';
-            } else {
-                selectedItemsDiv.textContent = selected.join(', ');
-            }
-        }
-
-        function updateHiddenSelect() {
-            // Clear existing selections
-            Array.from(sortSelect.options).forEach(option => {
-                option.selected = false;
-            });
-
-            // Set new selections
-            checkboxes.forEach(checkbox => {
-                if (checkbox.checked) {
-                    const option = Array.from(sortSelect.options).find(opt => opt.value === checkbox.value);
-                    if (option) option.selected = true;
-                }
-            });
-        }
-
-        function sortTable() {
-            const selectedOptions = Array.from(checkboxes)
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
-
-            if (selectedOptions.length === 0) {
-                resetTable();
-                return;
-            }
-
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-
-            rows.sort((a, b) => {
-                const aCells = a.querySelectorAll('td');
-                const bCells = b.querySelectorAll('td');
-
-                for (let sortBy of selectedOptions) {
-                    let aValue, bValue;
-                    let comparison = 0;
-
-                    switch (sortBy) {
-                        case 'date':
-                            aValue = aCells[1].textContent;
-                            bValue = bCells[1].textContent;
-                            comparison = aValue.localeCompare(bValue);
-                            break;
-
-                        case 'time':
-                            aValue = aCells[2].textContent;
-                            bValue = bCells[2].textContent;
-                            comparison = aValue.localeCompare(bValue);
-                            break;
-
-                        case 'light':
-                            aValue = parseFloat(aCells[3].textContent) || 0;
-                            bValue = parseFloat(bCells[3].textContent) || 0;
-                            comparison = aValue - bValue;
-                            break;
-                    }
-
-                    if (comparison !== 0) {
-                        return comparison;
-                    }
-                }
-
-                return 0;
-            });
-
-            // Remove existing rows
-            rows.forEach(row => tbody.removeChild(row));
-
-            // Add sorted rows
-            rows.forEach(row => tbody.appendChild(row));
-        }
-
-        function resetTable() {
-            // Store original rows order on first load
-            if (!window.originalTableRows) {
-                const tbody = table.querySelector('tbody');
-                window.originalTableRows = Array.from(tbody.querySelectorAll('tr'));
-            }
-
-            const tbody = table.querySelector('tbody');
-            const currentRows = Array.from(tbody.querySelectorAll('tr'));
-
-            // Remove current rows
-            currentRows.forEach(row => tbody.removeChild(row));
-
-            // Add back original rows in original order
-            window.originalTableRows.forEach(row => tbody.appendChild(row));
-        }
-
-        // Initialize original table rows on first load
-        const tbody = table.querySelector('tbody');
-        window.originalTableRows = Array.from(tbody.querySelectorAll('tr'));
-    });
-</script>

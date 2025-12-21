@@ -18,6 +18,7 @@ namespace api
 
     METHOD_ADD(data::postData, "/postData", Post);
     METHOD_ADD(data::getData, "/getData", Get);
+    METHOD_ADD(data::exportCsv, "/exportCsv", Get);
 
     METHOD_LIST_END
     // your declaration of processing function maybe like this:
@@ -39,7 +40,7 @@ namespace api
             sort.end());
       }
 
-      bool is_datafilter_empty()
+      bool is_empty()
       {
         return sensor_id.empty() && date.empty() && sort.empty() && level.empty();
       }
@@ -47,5 +48,6 @@ namespace api
 
     void postData(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void getData(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
+    void exportCsv(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
   };
 }

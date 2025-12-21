@@ -17,7 +17,6 @@ namespace api
             return;
         }
 
-
         int sensor_id = (*jsonStr)["sensor_id"].asInt();
         float light = (*jsonStr)["light"].asFloat();
 
@@ -61,74 +60,68 @@ namespace api
         auto client = drogon::app().getDbClient("default");
 
         // Get data filter parameters
-        DataFilter_t s_DataFilter = {
+        DataFilter_t data_filter = {
             .sensor_id = req->getParameter("sensor_id"),
             .date = req->getParameter("date"),
             .sort = {req->getParameter("sort")},
             .level = req->getParameter("level")};
-        s_DataFilter.to_valid_sort(); // Delete null string in sort
+        data_filter.to_valid_sort(); // Delete null string in sort
 
         // Create query string
         std::string SQL_str = "SELECT sensor_id, date, time, light FROM bh1750 WHERE 1=1";
 
         // Check filter parameter
-        if (s_DataFilter.is_datafilter_empty())
+        if (data_filter.is_empty())
         {
             SQL_str.append(" ORDER BY date DESC, time DESC LIMIT 30;");
         }
         else
         {
-            /*
-            - Filtering by sensor_id
-            - Filtering by date
-            - Filtering by light intensity level (low, medium, high)
-            - Sort by date DESC, time DESC (default)
-            - Sort by light DESC, ASC
-            */
-
             // ============ DATA FILTER BLOCK ==============
             // Search
-            if (!s_DataFilter.sensor_id.empty() || !s_DataFilter.date.empty())
+            if (!data_filter.sensor_id.empty())
             {
                 std::string SQL_search;
+                SQL_search.append(" AND sensor_id = ");
+                SQL_search.append(data_filter.sensor_id);
 
-                // Sensor ID filter
-                if (!s_DataFilter.sensor_id.empty())
-                {
-                    SQL_search.append(" AND sensor_id = ");
-                    SQL_search.append(s_DataFilter.sensor_id);
-                }
+                SQL_str.append(SQL_search);
+            }
+            if (!data_filter.date.empty())
+            {
+                std::string SQL_search;
+                SQL_search.append(" AND date = \"");
+                SQL_search.append(data_filter.date);
+                SQL_search.append("\"");
 
-                // Date filter
-                if (!s_DataFilter.date.empty())
-                {
-                    SQL_search.append(" AND date = \"");
-                    SQL_search.append(s_DataFilter.date);
-                    SQL_search.append("\"");
-                }
+                SQL_str.append(SQL_search);
+            }
 
-                // Light level filter
-                if (s_DataFilter.level == "low") // [0, 1000)
+            if (!data_filter.level.empty())
+            {
+                std::string SQL_search;
+                if (data_filter.level == "low") // [0, 1000)
                 {
                     SQL_search.append(" AND light >= 0 AND light < 1000");
                 }
-                else if (s_DataFilter.level == "medium") // [1000, 10000)
+                else if (data_filter.level == "medium") // [1000, 10000)
                 {
                     SQL_search.append(" AND light >= 1000 AND light < 10000");
                 }
-                else if (s_DataFilter.level == "high") // [10000, max)
+                else if (data_filter.level == "high") // [10000, max)
                 {
                     SQL_search.append(" AND light >= 10000");
                 }
 
                 SQL_str.append(SQL_search);
             }
+
             // Sort
-            if (!s_DataFilter.sort.empty())
+            if (!data_filter.sort.empty())
             {
-                int s_comma_count = s_DataFilter.sort.size() - 1;
+                int s_comma_count = data_filter.sort.size() - 1;
                 std::string SQL_sort = " ORDER BY";
-                for (auto param : s_DataFilter.sort)
+                for (auto param : data_filter.sort)
                 {
                     SQL_sort.append(" ");
                     SQL_sort.append(param);
@@ -141,10 +134,9 @@ namespace api
                 }
                 SQL_str.append(SQL_sort);
             }
+
             SQL_str.append(" LIMIT 30;");
         }
-
-
 
         // ============== Execute ==================
         client->execSqlAsync(
@@ -168,6 +160,105 @@ namespace api
                 viewData.insert("data", dataList);
 
                 auto resp = drogon::HttpResponse::newHttpViewResponse("data.csp", viewData);
+                callback(resp);
+            },
+
+            [=](const drogon::orm::DrogonDbException &e)
+            {
+                std::cerr << "error: " << e.base().what() << std::endl;
+                Json::Value status;
+                status["Error"] = e.base().what();
+                auto response = HttpResponse::newHttpJsonResponse(status);
+                callback(response);
+            });
+    }
+
+    void data::exportCsv(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
+    {
+        auto client = drogon::app().getDbClient("default");
+
+        DataFilter_t data_filter = {
+            .sensor_id = req->getParameter("sensor_id"),
+            .date = req->getParameter("date"),
+            .sort = {req->getParameter("sort")},
+            .level = req->getParameter("level")};
+        data_filter.to_valid_sort();
+
+        std::string SQL_exportCsv = "SELECT sensor_id, date, time, light FROM bh1750 WHERE 1=1";
+
+        if (data_filter.is_empty())
+        {
+            SQL_exportCsv.append(" ORDER BY date DESC, time DESC;");
+        }
+        else
+        {
+            if (!data_filter.sensor_id.empty())
+            {
+                SQL_exportCsv.append(" AND sensor_id = ");
+                SQL_exportCsv.append(data_filter.sensor_id);
+            }
+            if (!data_filter.date.empty())
+            {
+                SQL_exportCsv.append(" AND date = \"");
+                SQL_exportCsv.append(data_filter.date);
+                SQL_exportCsv.append("\"");
+            }
+
+            if (!data_filter.level.empty())
+            {
+                if (data_filter.level == "low") // [0, 1000)
+                {
+                    SQL_exportCsv.append(" AND light >= 0 AND light < 1000");
+                }
+                else if (data_filter.level == "medium") // [1000, 10000)
+                {
+                    SQL_exportCsv.append(" AND light >= 1000 AND light < 10000");
+                }
+                else if (data_filter.level == "high") // [10000, max)
+                {
+                    SQL_exportCsv.append(" AND light >= 10000");
+                }
+            }
+
+            if (!data_filter.sort.empty())
+            {
+                int s_comma_count = data_filter.sort.size() - 1;
+                SQL_exportCsv.append(" ORDER BY");
+                for (auto param : data_filter.sort)
+                {
+                    SQL_exportCsv.append(" ");
+                    SQL_exportCsv.append(param);
+                    SQL_exportCsv.append(" DESC");
+                    while (s_comma_count != 0)
+                    {
+                        SQL_exportCsv.append(",");
+                        s_comma_count--;
+                    }
+                }
+            }
+        }
+
+        client->execSqlAsync(
+            SQL_exportCsv,
+            [=](const drogon::orm::Result &result)
+            {
+                std::string csv = "sensor_id,date,time,light\n";
+
+                for (auto const &row : result)
+                {
+                    csv += row["sensor_id"].as<std::string>() + "," +
+                           row["date"].as<std::string>() + "," +
+                           row["time"].as<std::string>() + "," +
+                           row["light"].as<std::string>() + "\n";
+                }
+
+                auto resp = drogon::HttpResponse::newHttpResponse();
+                resp->setContentTypeCode(CT_TEXT_CSV);
+                resp->addHeader(
+                    "Content-Disposition",
+                    "attachment; filename=sensor_data.csv");
+                resp->setBody(csv);
+
                 callback(resp);
             },
 
