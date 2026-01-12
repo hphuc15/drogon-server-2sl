@@ -67,13 +67,31 @@ namespace api
             .level = req->getParameter("level")};
         data_filter.to_valid_sort(); // Delete null string in sort
 
+        // Get offset parameter (mới thêm)
+        int offset = 0;
+        try
+        {
+            auto offset_str = req->getParameter("offset");
+            if (!offset_str.empty())
+            {
+                offset = std::stoi(offset_str);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error parsing offset: " << e.what() << std::endl;
+            offset = 0;
+        }
+
         // Create query string
         std::string SQL_str = "SELECT sensor_id, date, time, light FROM bh1750 WHERE 1=1";
 
         // Check filter parameter
         if (data_filter.is_empty())
         {
-            SQL_str.append(" ORDER BY date DESC, time DESC LIMIT 30;");
+            SQL_str.append(" ORDER BY date DESC, time DESC LIMIT 30 OFFSET ");
+            SQL_str.append(std::to_string(offset));
+            SQL_str.append(";");
         }
         else
         {
@@ -84,7 +102,6 @@ namespace api
                 std::string SQL_search;
                 SQL_search.append(" AND sensor_id = ");
                 SQL_search.append(data_filter.sensor_id);
-
                 SQL_str.append(SQL_search);
             }
             if (!data_filter.date.empty())
@@ -93,7 +110,6 @@ namespace api
                 SQL_search.append(" AND date = \"");
                 SQL_search.append(data_filter.date);
                 SQL_search.append("\"");
-
                 SQL_str.append(SQL_search);
             }
 
@@ -112,7 +128,6 @@ namespace api
                 {
                     SQL_search.append(" AND light >= 10000");
                 }
-
                 SQL_str.append(SQL_search);
             }
 
@@ -135,7 +150,10 @@ namespace api
                 SQL_str.append(SQL_sort);
             }
 
-            SQL_str.append(" LIMIT 30;");
+            // Thêm LIMIT và OFFSET (sửa dòng này)
+            SQL_str.append(" LIMIT 30 OFFSET ");
+            SQL_str.append(std::to_string(offset));
+            SQL_str.append(";");
         }
 
         // ============== Execute ==================
@@ -158,11 +176,14 @@ namespace api
 
                 HttpViewData viewData;
                 viewData.insert("data", dataList);
+                // Truyền thêm offset cho template
+                viewData.insert("current_offset", offset);
+                // Truyền số lượng bản ghi hiện tại
+                viewData.insert("current_count", dataList.size());
 
                 auto resp = drogon::HttpResponse::newHttpViewResponse("data.csp", viewData);
                 callback(resp);
             },
-
             [=](const drogon::orm::DrogonDbException &e)
             {
                 std::cerr << "error: " << e.base().what() << std::endl;

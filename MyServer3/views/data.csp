@@ -265,6 +265,34 @@
                     overflow-x: auto;
                 }
             }
+
+            .more-section {
+                text-align: center;
+                padding: 25px;
+                background: white;
+                border-top: 1px solid #e2e8f0;
+            }
+
+            #moreBtn {
+                padding: 12px 32px;
+                font-size: 14px;
+                font-weight: 500;
+                background-color: #4299e1;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+
+            #moreBtn:hover {
+                background-color: #3182ce;
+            }
+
+            #loading {
+                color: #718096;
+                font-size: 14px;
+            }
         </style>
     </head>
 
@@ -280,7 +308,7 @@
                     <div class="filter-grid">
                         <div class="filter-group">
                             <label for="sensor_id">Sensor ID</label>
-                            <input type="number" id="sensor_id" name="sensor_id" min="1" placeholder="Enter sensor ID">
+                            <input type="number" id="sensor_id" name="sensor_id" min="0" placeholder="Enter sensor ID">
                         </div>
 
                         <div class="filter-group">
@@ -356,6 +384,15 @@
 
                     </tbody>
                 </table>
+                <div class="more-section"
+                    style="text-align: center; padding: 20px; background: white; border-top: 1px solid #e2e8f0;">
+                    <button type="button" class="btn btn-primary" id="moreBtn">
+                        Load More (+30 records)
+                    </button>
+                    <div id="loading" style="display: none;">
+                        <span style="color: #718096;">Loading more data...</span>
+                    </div>
+                </div>
             </section>
         </div>
 
@@ -670,7 +707,103 @@
                         document.head.appendChild(style);
                     }
                 }
+                // More button functionality
+                const moreBtn = document.getElementById('moreBtn');
+                const loadingDiv = document.getElementById('loading');
 
+                if (moreBtn) {
+                    moreBtn.addEventListener('click', function () {
+                        // Disable button and show loading
+                        moreBtn.style.display = 'none';
+                        loadingDiv.style.display = 'block';
+
+                        // Get current offset from URL
+                        const urlParams = new URLSearchParams(window.location.search);
+                        let currentOffset = parseInt(urlParams.get('offset') || '0');
+                        const newOffset = currentOffset + 30;
+
+                        // Build new URL with updated offset
+                        const formData = new FormData(filterForm);
+                        const params = new URLSearchParams();
+
+                        // Add all filter parameters
+                        for (let [key, value] of formData.entries()) {
+                            if (value) {
+                                if (key === 'sort') {
+                                    const existing = params.get('sort');
+                                    params.set('sort', existing ? `${existing},${value}` : value);
+                                } else {
+                                    params.append(key, value);
+                                }
+                            }
+                        }
+
+                        // Add offset parameter
+                        params.set('offset', newOffset.toString());
+
+                        // Make AJAX request
+                        fetch(`/api/data/getData?${params.toString()}`, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'text/html'
+                            }
+                        })
+                            .then(response => response.text())
+                            .then(html => {
+                                // Parse the HTML response
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(html, 'text/html');
+
+                                // Extract new rows from the response
+                                const newRows = doc.querySelectorAll('#tableBody tr');
+
+                                // Append new rows to current table
+                                const tableBody = document.getElementById('tableBody');
+                                newRows.forEach(row => {
+                                    tableBody.appendChild(row.cloneNode(true));
+                                });
+
+                                // Update URL without reloading page
+                                const newUrl = `${window.location.pathname}?${params.toString()}`;
+                                window.history.pushState({}, '', newUrl);
+
+                                // Check if there are more records (if less than 30, hide button)
+                                const newRowCount = newRows.length;
+                                if (newRowCount >= 30) {
+                                    moreBtn.style.display = 'block';
+                                }
+
+                                // Hide loading
+                                loadingDiv.style.display = 'none';
+                            })
+                            .catch(error => {
+                                console.error('Error loading more data:', error);
+                                moreBtn.style.display = 'block';
+                                loadingDiv.style.display = 'none';
+                                alert('Failed to load more data. Please try again.');
+                            });
+                    });
+                }
+
+                // Also update the reset button to reset offset
+                resetBtn.addEventListener('click', function () {
+                    // ... existing reset code remains ...
+
+                    // Reset offset in URL (add this line)
+                    const url = new URL(window.location);
+                    url.searchParams.delete('offset');
+                    window.history.replaceState({}, '', url);
+                });
+
+                // Update form submission to reset offset
+                filterForm.addEventListener('submit', function (e) {
+                    // Remove offset when applying new filters
+                    const url = new URL(window.location);
+                    url.searchParams.delete('offset');
+                    window.history.replaceState({}, '', url);
+
+                    // ... rest of existing submit code remains ...
+                });
                 // Initialize
                 updateSortDisplay();
             });

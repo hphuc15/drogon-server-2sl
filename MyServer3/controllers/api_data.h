@@ -32,6 +32,10 @@ namespace api
       std::vector<std::string> sort;
       std::string level; // low, medium, high
 
+      // Pagination
+      std::string limit;
+      std::string offset;
+
       void to_valid_sort()
       {
         sort.erase(
